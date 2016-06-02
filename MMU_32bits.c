@@ -16,6 +16,7 @@
 #define R_TRAP -1
 #define OK 0
 
+#define FRAME_NUM 524288 //2^19
 struct virtual_page_t{
     uint32_t cache:1;
     uint32_t ref:1;
@@ -52,4 +53,45 @@ int get_frame_addr(uint32_t lvaddr, uint32_t *faddr, vtab_t virtual_tab[][VTAB_L
     *faddr = (*faddr) | va.desloc;
 
     return R_OK;
+}
+
+//algorítimo de envelhecimento
+
+struct age_t{
+    uint8_t age;
+    uint8_t alloc;
+    uint8_t l1; //tab nível 1
+    uint8_t age; //tab nível 2
+
+};
+typedef struct age_t age_t;
+
+void aging(age_t at[], vtab_t vt[][VTAB_LEN]){
+    int i, j;
+    for(i=0;i<VTAB_LEN;i++){
+        for(j=0;j<VTAB_LEN,j++){
+            if(vt[i][j].exist){
+                int k = vt[i][j].frame;
+                at[k].alloc = TRUE;
+                at[k].age = at[k].age >> 1;
+                at[k].age = at[k].age | (vt[i][j].ref << 7);
+            }
+        }
+    }
+}
+
+int get_frame_NUR(age_t at[]){
+    int i, imin = -1;
+    int min = 256;
+
+    for(i=0;i<FRAME_NUM;i++){
+        if(!at[i].alloc) return i;
+        else{
+            if(at[i].age < min){
+                min = at[i].age;
+                imin = i;
+            }
+        }
+    }
+    return imin;
 }
